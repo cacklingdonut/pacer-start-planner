@@ -212,11 +212,8 @@ ol.steps > li.run-walk-note::before { display: none; }
     <h1><span style="color:red;">NONFINAL TOOL V 0.6</h1>
       <h3>Recent updates -- Nov 11</h3>
         <ul style="margin-left: 24px; list-style-type: disc;">
-          <li>Add run / walk ratio recommendations!</li>
           <li>Warn runners at risk of being swept</li>
-          <li>Change default corral to F</li>
-          <li>Reword "how it works" section</li>
-          <li>Default check "finish exactly at goal"</li>
+          <li>Suggest a starting corral to drop back to if appropriate</li>
         </ul>
     <p class="tagline">Can't start in the same corral as your pace group? This tool finds the plan that
       maximizes your time with the pacers while still hitting your goal time — catching groups,
@@ -1001,17 +998,20 @@ function groupReachability(input) {
     if (res.best && res.issues.length) {
       notices.push({ cls: 'warn', msg: 'Warning: the computed plan failed internal verification — please double-check it: ' + res.issues.join('; ') });
     }
+    let launchCorral = corral;
+    for (const c of CORRALS) if (state.corralStarts[c] <= plan.s + 1e-9) launchCorral = c;
+
     const waitMin = plan.s - cs;
     if (res.best && fixedStart == null && waitMin > 15) {
-      notices.push({ cls: 'info', msg: `Your best plan has you crossing the start ${Math.round(waitMin)} minutes after your corral opens — hang back near the corral entrance and let the waves go by.` });
+      notices.push({ cls: 'info', msg: `Your plan has you crossing the start ${Math.round(waitMin)} minutes after your corral opens — hang back in your corral, or join a later corral (probably corral ${launchCorral}).` });
     }
 
     $('notices').innerHTML = notices.map(n => `<div class="notice ${n.cls}">${esc(n.msg)}</div>`).join('');
-    renderResults({ plan, best, pacers, elig, reach, T, band, goalPace, D, corral, cs });
+    renderResults({ plan, best, pacers, elig, reach, T, band, goalPace, D, corral, cs, launchCorral });
   }
 
   // ---------- render ----------
-  function renderResults({ plan, best, pacers, elig, reach, T, band, goalPace, D, corral, cs }) {
+  function renderResults({ plan, best, pacers, elig, reach, T, band, goalPace, D, corral, cs, launchCorral }) {
     const host = $('results');
     const pct = Math.min(100, plan.paced / T * 100);
     const chipBuf = T - plan.chip;
@@ -1034,7 +1034,7 @@ function groupReachability(input) {
         </div>
 
 
-        <ol class="steps">${renderSteps({ plan, best, goalPace, T, corral, cs, D })}</ol>
+        <ol class="steps">${renderSteps({ plan, best, goalPace, T, corral, cs, D, launchCorral })}</ol>
         <figure class="chart-card">${renderChart({ plan, best, pacers, elig, reach, D })}
           <figcaption>Gold = running with a pace group · blue = on your own · faint lines = pace groups
             (tinted if in your ±${fmtPace(band)}/mi band and usable in a plan that hits your goal). Distance vs. clock time.</figcaption>
@@ -1043,7 +1043,7 @@ function groupReachability(input) {
     host.innerHTML = stats;
   }
 
-  function renderSteps({ plan, best, goalPace, T, corral, cs, D }) {
+  function renderSteps({ plan, best, goalPace, T, corral, cs, D, launchCorral }) {
     const items = [];
     // suppress float-noise touchpoints (residuals <= ~1e-8 mi; smallest genuine
     // segment is ~0.08 mi) — a display filter only, no solver constraint
@@ -1052,8 +1052,6 @@ function groupReachability(input) {
     let startNote;
     if (Math.abs(plan.s - cs) < 0.25) startNote = `at the front of corral ${corral}`;
     else {
-      let launchCorral = corral;
-      for (const c of CORRALS) if (state.corralStarts[c] <= plan.s + 1e-9) launchCorral = c;
       const late = Math.round(plan.s - cs);
       startNote = `${late} min after your corral opens (corral ${launchCorral} will be launching)`;
     }
@@ -1087,7 +1085,7 @@ function groupReachability(input) {
     const afterBalloons = Math.round(plan.f*60) > 270*60; // True if you may get swept! 270 = minutes after 5AM. Change for other races.
 
     const chipBuf = T - plan.chip;
-    items.push(`<li><span class="t">Cross the finish line at ${fmtClock(plan.f)}${afterBalloons ? ' <span class="swept-warning"> --WARNING you may be swept after 9:30 </span>' : ''}</span>
+    items.push(`<li><span class="t">Cross the finish line at ${fmtClock(plan.f)}${afterBalloons ? ' <span class="swept-warning"> --WARNING you may be swept based on finish time </span>' : ''}</span>
       <span class="d">Chip time ${fmtDur(plan.chip)}${chipBuf > 0.5 ? ` — ${fmtDur(chipBuf)} under your goal` : ' — right on your goal'}</span></li>`);
     items.push(`<li class="run-walk-note"><span class="d">Run/walk recommendations use the closest ratio used by a pacer with similar speed. </span></li>`);
     return items.join('');
