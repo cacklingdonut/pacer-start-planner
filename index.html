@@ -94,6 +94,7 @@ input[type="text"]:focus, select:focus { border-color: var(--primary); outline: 
 }
 .notice.warn { background: var(--accent-soft); border-color: #f2d9b0; color: #6b4a10; }
 .notice.info { background: var(--primary-soft); border-color: #c4d2f5; color: #1d3f8f; }
+.swept-warning {color: red;}
 
 /* ---------- stats ---------- */
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.4rem; }
@@ -208,10 +209,11 @@ ol.steps > li.run-walk-note::before { display: none; }
   <header class="masthead">
     <div class="eyebrow"><span class="spark">✦</span> half marathon</div>
     <h1>Pacer Relay Planner</h1>
-    <h1><span style="color:red;">NONFINAL DEVELOPMENT TOOL <br> V 0.5</h1>
+    <h1><span style="color:red;">NONFINAL TOOL V 0.6</h1>
       <h3>Recent updates -- Nov 11</h3>
         <ul style="margin-left: 24px; list-style-type: disc;">
           <li>Add run / walk ratio recommendations!</li>
+          <li>Warn runners at risk of being swept</li>
           <li>Change default corral to F</li>
           <li>Reword "how it works" section</li>
           <li>Default check "finish exactly at goal"</li>
@@ -241,7 +243,7 @@ ol.steps > li.run-walk-note::before { display: none; }
       <div class="check-row">
         <input type="checkbox" id="exact" checked>
         <span>Finish exactly at goal
-          <span class="hint">Checked: finish at or under goal</span>
+          <span class="hint">Checked: finish at (not under) under goal</span>
         </span>
       </div>
     </div>
@@ -1081,10 +1083,13 @@ function groupReachability(input) {
           ${runWalkRecommendation(pace)}</li>`);
       }
     }
+
+    const afterBalloons = Math.round(plan.f*60) > 270*60; // True if you may get swept! 270 = minutes after 5AM. Change for other races.
+
     const chipBuf = T - plan.chip;
-    items.push(`<li><span class="t">Cross the finish line at ${fmtClock(plan.f)}</span>
+    items.push(`<li><span class="t">Cross the finish line at ${fmtClock(plan.f)}${afterBalloons ? ' <span class="swept-warning"> --WARNING you may be swept after 9:30 </span>' : ''}</span>
       <span class="d">Chip time ${fmtDur(plan.chip)}${chipBuf > 0.5 ? ` — ${fmtDur(chipBuf)} under your goal` : ' — right on your goal'}</span></li>`);
-    items.push(`<li class="run-walk-note"><span class="d">Run/walk recommendations use the closest pace in your table; every walk is 30 seconds. Exact ties use the slower table pace. These recommendations do not change segment times or guarantee that a pacer group follows the same intervals.</span></li>`);
+    items.push(`<li class="run-walk-note"><span class="d">Run/walk recommendations use the closest ratio used by a pacer with similar speed. </span></li>`);
     return items.join('');
   }
 
