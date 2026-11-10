@@ -196,11 +196,6 @@ h3.how { font-size: var(--text-lg); margin: 0.6rem 0 0.5rem; }
   figure.chart-card { overflow-x: auto; }
   svg.chart { min-width: 620px; }
 }
-
-.run-walk { margin-top: 0.35rem; color: var(--primary); font-weight: 600; }
-.run-walk-match { font-size: var(--text-xs); color: var(--muted); font-weight: 400; }
-ol.steps > li.run-walk-note { padding-top: 0.5rem; }
-ol.steps > li.run-walk-note::before { display: none; }
 </style>
 </head>
 <body>
@@ -208,14 +203,7 @@ ol.steps > li.run-walk-note::before { display: none; }
   <header class="masthead">
     <div class="eyebrow"><span class="spark">✦</span> half marathon</div>
     <h1>Pacer Relay Planner</h1>
-    <h1><span style="color:red;">NONFINAL DEVELOPMENT TOOL <br> V 0.5</h1>
-      <h3>Recent updates -- Nov 11</h3>
-        <ul style="margin-left: 24px; list-style-type: disc;">
-          <li>Add run / walk ratio recommendations!</li>
-          <li>Change default corral to F</li>
-          <li>Reword "how it works" section</li>
-          <li>Default check "finish exactly at goal"</li>
-        </ul>
+    <h1><span style="color:red;">NONFINAL DEVELOPMENT TOOL <br> V 0.4</h1>
     <p class="tagline">Can't start in the same corral as your pace group? This tool finds the plan that
       maximizes your time with the pacers while still hitting your goal time — catching groups,
       riding with them, and handing off down the course.</p>
@@ -224,13 +212,13 @@ ol.steps > li.run-walk-note::before { display: none; }
   <section class="card" aria-label="Your race">
     <div class="field-grid">
       <label class="field">Goal finish time (chip)
-        <input type="text" id="goal" value="2:50" placeholder="2:50" inputmode="numeric">
+        <input type="text" id="goal" value="2:30" placeholder="2:30 or 2:30:30" inputmode="numeric">
         <span class="hint" id="goal-pace-hint"></span>
       </label>
       <label class="field">Your corral
         <select id="corral">
-          <option>A</option><option>B</option><option>C</option>
-          <option>D</option><option>E</option><option selected>F</option><option>G</option>
+          <option>A</option><option>B</option><option selected>C</option>
+          <option>D</option><option>E</option><option>F</option><option>G</option>
         </select>
         <span class="hint" id="corral-hint"></span>
       </label>
@@ -239,9 +227,9 @@ ol.steps > li.run-walk-note::before { display: none; }
         <span class="hint">Blank = tool picks the best start</span>
       </label>
       <div class="check-row">
-        <input type="checkbox" id="exact" checked>
+        <input type="checkbox" id="exact">
         <span>Finish exactly at goal
-          <span class="hint">Checked: finish at or under goal</span>
+          <span class="hint">Unchecked: finish at or under goal</span>
         </span>
       </div>
     </div>
@@ -252,7 +240,7 @@ ol.steps > li.run-walk-note::before { display: none; }
   <section id="results" aria-live="polite"></section>
 
   <details class="assumptions" id="assumptions">
-    <summary>Race data & assumptions (modifiable)</summary>
+    <summary>Race data & assumptions (edit me)</summary>
     <div class="card">
       <div class="mini-grid">
         <label class="field">Pace band (± min/mi)
@@ -274,7 +262,7 @@ ol.steps > li.run-walk-note::before { display: none; }
       <div class="mini-grid" id="corral-starts"></div>
       <h3 class="how">Pace groups</h3>
       <table class="data" id="pacer-table">
-        <thead><tr><th>Finish (chip)</th><th>Corral</th><th>Crosses start line at</th><th></th></tr></thead>
+        <thead><tr><th>Finish (chip)</th><th>Corral</th><th>Starts the line at</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
       <div class="btn-row">
@@ -288,12 +276,14 @@ ol.steps > li.run-walk-note::before { display: none; }
   <footer class="caveats">
     <h3 class="how">How it works</h3>
     <p>Each pace group is modeled as running a perfectly even split from the moment it crosses the start
-      line. Given your corral-based or manually input start time,  we find which groups are catchable,
-      where to join and leave each one, and your pace between them. The suggested plan maximizes time spent with
+      line. Your plan is found by linear programming: it picks your start time, which groups to catch,
+      where to join and leave each one, and your pace between them, maximizing total minutes spent with
       pacers subject to your goal time and your ±band pace range.</p>
     <ul>
       <li>Corral start times and pacer crossings are estimates for the Wine & Dine half — refine them
         in the assumptions panel once actual results are published.</li>
+      <li>Real pacers don't run even splits, corrals merge and congest, and runDisney sweep rules
+        (16:00/mi pace requirement) aren't modeled.</li>
       <li>"Paced" time means staying within sight of the group's sign — a plan is a guide, not a guarantee.</li>
     </ul>
   </footer>
@@ -844,28 +834,6 @@ function groupReachability(input) {
     const t = Math.round(minPerMi * 60);
     return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
   }
-  const RUN_WALK_TABLE = [
-    [480, 240], [549, 120], [595, 90], [618, 90],
-    [641, 90], [686, 60], [732, 60], [778, 30],
-    [823, 30], [869, 20], [914, 15], [960, 15]
-  ];
-
-  function runWalkRecommendation(minPerMi) {
-    const paceSeconds = minPerMi * 60;
-    if (!Number.isFinite(paceSeconds) || paceSeconds <= 0) return '';
-    const nearest = RUN_WALK_TABLE.reduce((best, entry) => {
-      const delta = Math.abs(entry[0] - paceSeconds);
-      const bestDelta = Math.abs(best[0] - paceSeconds);
-      return delta < bestDelta - 1e-9 ||
-        (Math.abs(delta - bestDelta) <= 1e-9 && entry[0] > best[0]) ? entry : best;
-    });
-    const run = nearest[1], walk = 30;
-    const gcd = (a, b) => b ? gcd(b, a % b) : a;
-    const divisor = gcd(run, walk);
-    const interval = `${Math.floor(run / 60)}:${String(run % 60).padStart(2, '0')}`;
-    return `<span class="d run-walk">Run ${interval} / Walk 0:30 ·  <span class="run-walk-match">(closest to ${fmtPace(nearest[0] / 60)}/mi pacers ratio) </span></span>`;
-  }
-
   function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&', '<': '<', '>': '>', '"': '"' }[c])); }
 
   // ---------- persistence ----------
@@ -1064,8 +1032,7 @@ function groupReachability(input) {
         items.push(`<li class="paced"><span class="t">Run with the ${esc(P.label)} group${toFinish ? ' through the finish' : ''}</span>
           <span class="d">Mile ${sg.from.toFixed(2)} → ${toFinish ? 'finish' : sg.to.toFixed(2)}
            (${fmtClock(sg.tFrom)} → ${fmtClock(sg.tTo)}) · ${fmtPace(P.pace)}/mi
-           <span class="tag paced">paced</span></span>
-          ${runWalkRecommendation(P.pace)}</li>`);
+           <span class="tag paced">paced</span></span></li>`);
       } else {
         const dx = sg.to - sg.from;
         if (dx < 1e-9) continue;
@@ -1077,14 +1044,12 @@ function groupReachability(input) {
         else rel = `<span class="tag solo slow">${fmtPace(diff)}/mi slower than goal</span>`;
         items.push(`<li><span class="t">Run on your own${sg.to > D - 1e-9 ? ' to the finish' : ''}</span>
           <span class="d">Mile ${sg.from.toFixed(2)} → ${sg.to > D - 1e-9 ? 'finish' : sg.to.toFixed(2)}
-           (${fmtClock(sg.tFrom)} → ${fmtClock(sg.tTo)}) · ${fmtPace(pace)}/mi ${rel}</span>
-          ${runWalkRecommendation(pace)}</li>`);
+           (${fmtClock(sg.tFrom)} → ${fmtClock(sg.tTo)}) · ${fmtPace(pace)}/mi ${rel}</span></li>`);
       }
     }
     const chipBuf = T - plan.chip;
     items.push(`<li><span class="t">Cross the finish line at ${fmtClock(plan.f)}</span>
       <span class="d">Chip time ${fmtDur(plan.chip)}${chipBuf > 0.5 ? ` — ${fmtDur(chipBuf)} under your goal` : ' — right on your goal'}</span></li>`);
-    items.push(`<li class="run-walk-note"><span class="d">Run/walk recommendations use the closest pace in your table; every walk is 30 seconds. Exact ties use the slower table pace. These recommendations do not change segment times or guarantee that a pacer group follows the same intervals.</span></li>`);
     return items.join('');
   }
 
