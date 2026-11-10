@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacer Relay Planner </title>
+<meta name="description" content="Maximize your time with pace groups even when you can't start in their corral. Enter your goal time and corral, get a step-by-step pacing plan.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=chillax@400,500,600,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #faf7f1;
+  --surface: #ffffff;
+  --surface-2: #f4f0e8;
+  --ink: #1f2547;
+  --muted: #5c6380;
+  --faint: #9aa0b8;
+  --border: #e4dfd4;
+  --primary: #2456c4;
+  --primary-soft: #dbe4fb;
+  --accent: #d97b00;
+  --accent-soft: #fdeed7;
+  --good: #1d7a4c;
+  --shadow-sm: 0 1px 2px rgba(31,37,71,.06);
+  --shadow-md: 0 4px 14px rgba(31,37,71,.08);
+  --radius: 14px;
+  --font-display: 'Chillax', 'Avenir Next', 'Segoe UI', sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Helvetica Neue', sans-serif;
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+  --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+body {
+  min-height: 100dvh;
+  line-height: 1.6;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--ink);
+  background:
+    radial-gradient(1100px 500px at 85% -10%, #fdf3e0 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 0%, #e9effd 0%, transparent 55%),
+    var(--bg);
+}
+input, button, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+h1, h2, h3 { line-height: 1.15; text-wrap: balance; font-family: var(--font-display); }
+p, li { text-wrap: pretty; max-width: 70ch; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 4px; }
+
+.wrap { max-width: 980px; margin: 0 auto; padding: clamp(1rem, 3vw, 2.5rem) clamp(1rem, 4vw, 2rem) 4rem; }
+header.masthead { padding: 0.5rem 0 1.75rem; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 0.6rem;
+}
+.eyebrow .spark { font-size: 1rem; letter-spacing: 0.2em; }
+h1 { font-size: var(--text-xl); font-weight: 600; max-width: 22ch; }
+.tagline { color: var(--muted); margin-top: 0.5rem; max-width: 56ch; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: clamp(1.1rem, 2.5vw, 1.75rem);
+  margin-bottom: 1.25rem;
+}
+
+/* ---------- inputs ---------- */
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
+label.field { display: flex; flex-direction: column; gap: 0.3rem; font-size: var(--text-sm); font-weight: 600; }
+.field .hint { font-weight: 400; color: var(--muted); font-size: var(--text-xs); }
+input[type="text"], input[type="time"], select {
+  width: 100%; padding: 0.55rem 0.7rem;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  background: #fff; font-variant-numeric: tabular-nums;
+}
+input[type="text"]:focus, select:focus { border-color: var(--primary); outline: none; }
+.check-row { display: flex; align-items: center; gap: 0.55rem; font-size: var(--text-sm); font-weight: 600; padding-top: 1.55rem; }
+.check-row input { width: 1.05rem; height: 1.05rem; accent-color: var(--primary); }
+.check-row .hint { display: block; font-weight: 400; color: var(--muted); font-size: var(--text-xs); }
+
+/* ---------- notices ---------- */
+.notice {
+  border-radius: 12px; padding: 0.9rem 1.1rem; margin-bottom: 1.25rem;
+  font-size: var(--text-sm); border: 1px solid transparent;
+}
+.notice.warn { background: var(--accent-soft); border-color: #f2d9b0; color: #6b4a10; }
+.notice.info { background: var(--primary-soft); border-color: #c4d2f5; color: #1d3f8f; }
+
+/* ---------- stats ---------- */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.4rem; }
+.stat { background: var(--surface-2); border-radius: 12px; padding: 0.85rem 1rem; }
+.stat .k { font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 0.1rem; }
+.stat .v small { font-size: 0.6em; color: var(--muted); font-weight: 500; white-space: nowrap; margin-left: 0.15rem; }
+.stat.hero .v { color: var(--accent); }
+
+/* ---------- chips ---------- */
+.chip-row { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.4rem 0 1.4rem; }
+.chip {
+  font-size: var(--text-xs); font-weight: 700; padding: 0.28rem 0.6rem;
+  border-radius: 999px; border: 1.5px solid var(--border); color: var(--faint);
+  background: #fff; font-variant-numeric: tabular-nums;
+}
+.chip, .chip:disabled { cursor: default; }
+button.chip:not(:disabled) { cursor: pointer; transition: transform 0.08s ease, box-shadow 0.08s ease; }
+button.chip:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(31, 37, 71, 0.14); }
+button.chip:disabled { opacity: 0.55; }
+.chip.on { border-color: #9db4ec; color: #1d3f8f; background: var(--primary-soft); }
+.chip.noreach:not(.pinned) { border-style: dotted; opacity: 0.6; }
+.chip.noreach:not(.pinned):hover { opacity: 1; }
+.chip.used { border-color: var(--accent); color: #8a5200; background: var(--accent-soft); }
+.chip.pinned { border: 2px dashed var(--primary); color: var(--primary); background: #fff; box-shadow: 0 0 0 2px rgba(36, 86, 196, 0.12); }
+.chip.pinned.used { border-style: solid; border-color: var(--primary); background: var(--accent-soft); color: #6b4a10; box-shadow: 0 0 0 2px rgba(36, 86, 196, 0.18); }
+.chip-hint { font-size: var(--text-xs); color: var(--faint); margin: -1.1rem 0 1.4rem; }
+
+/* ---------- steps ---------- */
+ol.steps { list-style: none; counter-reset: step; margin-bottom: 1.5rem; }
+ol.steps li {
+  counter-increment: step;
+  position: relative; padding: 0.65rem 0 0.65rem 2.6rem;
+  border-left: 2.5px solid var(--border); margin-left: 1.05rem;
+}
+ol.steps li:last-child { border-left-color: transparent; }
+ol.steps li::before {
+  content: counter(step);
+  position: absolute; left: -0.85rem; top: 0.55rem;
+  width: 1.7rem; height: 1.7rem; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 700;
+}
+ol.steps li.paced::before { background: var(--accent); }
+ol.steps li .t { font-weight: 700; }
+ol.steps li .d { color: var(--muted); font-size: var(--text-sm); display: block; }
+.tag {
+  display: inline-block; font-size: var(--text-xs); font-weight: 700; padding: 0.05rem 0.5rem;
+  border-radius: 999px; margin-left: 0.4rem; vertical-align: 0.1em;
+}
+.tag.paced { background: var(--accent-soft); color: #8a5200; }
+.tag.solo { background: var(--primary-soft); color: #1d3f8f; }
+.tag.fast { color: var(--good); }
+.tag.slow { color: var(--accent); }
+
+/* ---------- chart ---------- */
+figure.chart-card { margin: 0 0 1.25rem; }
+svg.chart { width: 100%; height: auto; display: block; }
+figcaption { font-size: var(--text-xs); color: var(--muted); margin-top: 0.5rem; }
+
+/* ---------- assumptions ---------- */
+details.assumptions { margin-bottom: 1.25rem; }
+details.assumptions summary {
+  cursor: pointer; font-weight: 700; font-size: var(--text-sm);
+  padding: 0.35rem 0; color: var(--muted); list-style: none;
+}
+details.assumptions summary::before { content: "▸ "; }
+details.assumptions[open] summary::before { content: "▾ "; }
+.assumptions .card { margin-top: 0.6rem; }
+.mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.9rem; margin-bottom: 1.2rem; }
+table.data { border-collapse: collapse; width: 100%; font-size: var(--text-sm); }
+table.data th {
+  text-align: left; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted); padding: 0.4rem 0.5rem; border-bottom: 2px solid var(--border);
+}
+table.data td { padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border); }
+table.data input { padding: 0.35rem 0.45rem; }
+table.data td.rm { width: 2.2rem; text-align: center; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+.btn {
+  font-size: var(--text-sm); font-weight: 700; padding: 0.5rem 0.95rem;
+  border-radius: 10px; border: 1.5px solid var(--border); background: #fff; color: var(--ink);
+  transition: all 160ms ease;
+}
+.btn:hover { border-color: var(--primary); color: var(--primary); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn.primary:hover { background: #1c46a0; }
+.btn.small { padding: 0.25rem 0.6rem; font-size: var(--text-xs); }
+
+footer.caveats { color: var(--muted); font-size: var(--text-sm); border-top: 1px solid var(--border); padding-top: 1.2rem; }
+footer.caveats ul { margin: 0.5rem 0 0 1.1rem; }
+footer.caveats li { margin-bottom: 0.3rem; max-width: 75ch; }
+h3.how { font-size: var(--text-lg); margin: 0.6rem 0 0.5rem; }
+.how p { color: var(--muted); font-size: var(--text-sm); margin-bottom: 0.5rem; }
+@media (max-width: 560px) {
+  ol.steps li { padding-left: 2.2rem; margin-left: 0.7rem; }
+}
+@media (max-width: 700px) {
+  figure.chart-card { overflow-x: auto; }
+  svg.chart { min-width: 620px; }
+}
+
+.run-walk { margin-top: 0.35rem; color: var(--primary); font-weight: 600; }
+.run-walk-match { font-size: var(--text-xs); color: var(--muted); font-weight: 400; }
+ol.steps > li.run-walk-note { padding-top: 0.5rem; }
+ol.steps > li.run-walk-note::before { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow"><span class="spark">✦</span> half marathon</div>
+    <h1>Pacer Relay Planner</h1>
+    <h1><span style="color:red;">NONFINAL DEVELOPMENT TOOL <br> V 0.5</h1>
+      <h3>Recent updates -- Nov 11</h3>
+        <ul style="margin-left: 24px; list-style-type: disc;">
+          <li>Add run / walk ratio recommendations!</li>
+          <li>Change default corral to F</li>
+          <li>Reword "how it works" section</li>
+          <li>Default check "finish exactly at goal"</li>
+        </ul>
+    <p class="tagline">Can't start in the same corral as your pace group? This tool finds the plan that
+      maximizes your time with the pacers while still hitting your goal time — catching groups,
+      riding with them, and handing off down the course.</p>
+  </header>
+
+  <section class="card" aria-label="Your race">
+    <div class="field-grid">
+      <label class="field">Goal finish time (chip)
+        <input type="text" id="goal" value="2:50" placeholder="2:50" inputmode="numeric">
+        <span class="hint" id="goal-pace-hint"></span>
+      </label>
+      <label class="field">Your corral
+        <select id="corral">
+          <option>A</option><option>B</option><option>C</option>
+          <option>D</option><option>E</option><option selected>F</option><option>G</option>
+        </select>
+        <span class="hint" id="corral-hint"></span>
+      </label>
+      <label class="field">Start time (optional)
+        <input type="text" id="fixed-start" placeholder="5:15 or blank" inputmode="numeric">
+        <span class="hint">Blank = tool picks the best start</span>
+      </label>
+      <div class="check-row">
+        <input type="checkbox" id="exact" checked>
+        <span>Finish exactly at goal
+          <span class="hint">Checked: finish at or under goal</span>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <div id="notices"></div>
+
+  <section id="results" aria-live="polite"></section>
+
+  <details class="assumptions" id="assumptions">
+    <summary>Race data & assumptions (modifiable)</summary>
+    <div class="card">
+      <div class="mini-grid">
+        <label class="field">Pace band (± min/mi)
+          <input type="text" id="band" value="1">
+        </label>
+        <label class="field">First pacer offset (sec)
+          <input type="text" id="offset" value="30">
+          <span class="hint">Pacers cross the start this long after their corral opens</span>
+        </label>
+        <label class="field">Latest start (clock)
+          <input type="text" id="smax" value="5:58">
+          <span class="hint">Last pacer start — you can hang back until then</span>
+        </label>
+        <label class="field">Distance (miles)
+          <input type="text" id="dist" value="13.1094">
+        </label>
+      </div>
+      <h3 class="how">Corral start times</h3>
+      <div class="mini-grid" id="corral-starts"></div>
+      <h3 class="how">Pace groups</h3>
+      <table class="data" id="pacer-table">
+        <thead><tr><th>Finish (chip)</th><th>Corral</th><th>Crosses start line at</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="btn-row">
+        <button class="btn small" id="add-pacer">+ Add pace group</button>
+        <button class="btn small" id="rederive">Re-derive pacer starts from corrals</button>
+        <button class="btn small" id="reset">Reset to Wine & Dine defaults</button>
+      </div>
+    </div>
+  </details>
+
+  <footer class="caveats">
+    <h3 class="how">How it works</h3>
+    <p>Each pace group is modeled as running a perfectly even split from the moment it crosses the start
+      line. Given your corral-based or manually input start time,  we find which groups are catchable,
+      where to join and leave each one, and your pace between them. The suggested plan maximizes time spent with
+      pacers subject to your goal time and your ±band pace range.</p>
+    <ul>
+      <li>Corral start times and pacer crossings are estimates for the Wine & Dine half — refine them
+        in the assumptions panel once actual results are published.</li>
+      <li>"Paced" time means staying within sight of the group's sign — a plan is a guide, not a guarantee.</li>
+    </ul>
+  </footer>
+</div>
+
+<script>
+// Two-phase dense simplex. Solves:  maximize c.x  subject to  A.x <= b,  x >= 0.
+// Returns { status: 'OPTIMAL'|'INFEASIBLE'|'UNBOUNDED', x: [...], obj: number }
+// Uses Bland's rule (guaranteed termination, no cycling).
+
+const TOL = 1e-9;
+
+function pivot(T, obj, basis, m, r, col) {
+  const pr = T[r];
+  const p = pr[col];
+  // scale pivot row
+  for (let j = 0; j < pr.length; j++) pr[j] /= p;
+  // eliminate from other rows and objective
+  for (let i = 0; i < m; i++) {
+    if (i === r) continue;
+    const f = T[i][col];
+    if (f === 0) continue;
+    const row = T[i];
+    for (let j = 0; j < row.length; j++) row[j] -= f * pr[j];
+  }
+  const f = obj[col];
+  if (f !== 0) {
+    for (let j = 0; j < obj.length; j++) obj[j] -= f * pr[j];
+  }
+  basis[r] = col;
+}
+
+/**
+ * @param {number[]} c   objective coefficients (length n)
+ * @param {number[][]} A  constraint matrix (m rows x n cols)
+ * @param {number[]} b    right-hand sides (length m)
+ * @param {boolean[]} forbidEnter  optional: columns that may not enter basis (length n)
+ */
+function solveMax(c, A, b, forbidEnter) {
+  const m = A.length, n = c.length;
+  const negRow = b.map((v) => v < 0);
+  const artColOf = new Array(m).fill(-1);
+  let nArt = 0;
+  for (let i = 0; i < m; i++) if (negRow[i]) artColOf[i] = n + m + (nArt++);
+  const totalVars = n + m + nArt;
+  const rhsCol = totalVars; // last column
+
+  // Build tableau rows: T[i] = [vars..., rhs]
+  const T = [];
+  const basis = new Array(m);
+  for (let i = 0; i < m; i++) {
+    const row = new Float64Array(totalVars + 1);
+    for (let j = 0; j < n; j++) row[j] = negRow[i] ? -A[i][j] : A[i][j];
+    row[n + i] = negRow[i] ? -1 : 1;
+    row[rhsCol] = Math.abs(b[i]);
+    if (negRow[i]) {
+      row[artColOf[i]] = 1;
+      basis[i] = artColOf[i];
+    } else {
+      basis[i] = n + i;
+    }
+    T.push(row);
+  }
+
+  const forbid = new Array(totalVars).fill(false);
+  if (forbidEnter) for (let j = 0; j < n; j++) if (forbidEnter[j]) forbid[j] = true;
+  for (let i = 0; i < m; i++) if (artColOf[i] >= 0) forbid[artColOf[i]] = true; // artificials never enter
+
+  // ---------- PHASE 1: minimize sum of artificials (maximize negative sum) ----------
+  let obj1 = new Float64Array(totalVars + 1);
+  if (nArt > 0) {
+    for (let i = 0; i < m; i++) if (artColOf[i] >= 0) obj1[artColOf[i]] = -1;
+    // canonicalize: zero out reduced cost of basic artificials
+    for (let i = 0; i < m; i++) {
+      if (artColOf[i] >= 0) {
+        for (let j = 0; j <= rhsCol; j++) obj1[j] += T[i][j];
+      }
+    }
+    // pivot loop
+    for (;;) {
+      let col = -1;
+      for (let j = 0; j < totalVars; j++) {
+        if (!forbid[j] && obj1[j] > TOL) { col = j; break; } // Bland: smallest index
+      }
+      if (col < 0) break;
+      // ratio test
+      let r = -1, best = Infinity;
+      for (let i = 0; i < m; i++) {
+        if (T[i][col] > 1e-12) {
+          const ratio = T[i][rhsCol] / T[i][col];
+          if (ratio < best - 1e-12 || (Math.abs(ratio - best) <= 1e-12 && basis[i] < basis[r])) {
+            best = ratio; r = i;
+          }
+        }
+      }
+      if (r < 0) return { status: 'UNBOUNDED' }; // shouldn't happen in phase 1
+      pivot(T, obj1, basis, m, r, col);
+    }
+    // check phase-1 objective value
+    if (obj1[rhsCol] > 1e-7) return { status: 'INFEASIBLE' }; // obj rhs = +sum of artificials
+    // drive any remaining basic artificials (at value 0) out of the basis
+    for (let i = 0; i < m; i++) {
+      if (basis[i] >= n + m) {
+        // find any non-artificial column with nonzero entry
+        let col = -1;
+        for (let j = 0; j < n + m; j++) {
+          if (Math.abs(T[i][j]) > 1e-9) { col = j; break; }
+        }
+        if (col >= 0) pivot(T, obj1, basis, m, i, col);
+        // else: redundant row (all zeros) — harmless, leave it
+      }
+    }
+  }
+
+  // ---------- PHASE 2: original objective ----------
+  const obj = new Float64Array(totalVars + 1);
+  for (let j = 0; j < n; j++) obj[j] = c[j];
+  // canonicalize w.r.t. current basis
+  for (let i = 0; i < m; i++) {
+    const bj = basis[i];
+    const cbj = bj < n ? obj[bj] : 0;
+    if (cbj !== 0) {
+      for (let j = 0; j <= rhsCol; j++) obj[j] -= cbj * T[i][j];
+    }
+  }
+  for (;;) {
+    let col = -1;
+    for (let j = 0; j < totalVars; j++) {
+      if (!forbid[j] && obj[j] > TOL) { col = j; break; }
+    }
+    if (col < 0) break;
+    let r = -1, best = Infinity;
+    for (let i = 0; i < m; i++) {
+      if (T[i][col] > 1e-12) {
+        const ratio = T[i][rhsCol] / T[i][col];
+        if (ratio < best - 1e-12 || (Math.abs(ratio - best) <= 1e-12 && basis[i] < basis[r])) {
+          best = ratio; r = i;
+        }
+      }
+    }
+    if (r < 0) return { status: 'UNBOUNDED' };
+    pivot(T, obj, basis, m, r, col);
+  }
+
+  const x = new Array(n).fill(0);
+  for (let i = 0; i < m; i++) if (basis[i] < n) x[basis[i]] = T[i][rhsCol];
+  return { status: 'OPTIMAL', x, obj: -obj[rhsCol] }; // rhs holds negated objective value
+}
+</script>
+<script>
+// Race pacer-plan optimizer.
+// Model: runner trajectory t(x), x = miles from start line, t = minutes after 5:00 AM.
+// Pacers run constant pace p_i = T_i / D starting at absolute time a_i.
+// Runner: starts at s in [cstart, smax]; solo segments must have average pace in
+// [p0 - band, p0 + band]; paced segments lie exactly on a pacer's line; chip time
+// f - s <= T (or == T in exact mode). Maximize total minutes on pacer lines.
+
+
+
+// Build rows for itinerary `pacers` (ordered list). Vars: [sigma, f, u_1..u_k, v_1..v_k]
+function buildRows(pacers, ctx) {
+  const { D, cstart, T, pmin, pmax } = ctx;
+  const k = pacers.length;
+  const rows = [];
+
+  // sigma <= smax - cstart
+  const r = new Array(2 + 2 * k).fill(0);
+  r[0] = 1;
+  rows.push({ a: r, b: ctx.smax - cstart });
+
+  if (k === 0) {
+    // solo race: pmin*D <= f - cstart - sigma <= pmax*D, chip <= T (or ==)
+    let a1 = new Array(2).fill(0);
+    a1[1] = 1; a1[0] = -1;
+    rows.push({ a: a1, b: cstart + pmax * D });          // f - sigma <= cstart + pmax*D
+    let a2 = new Array(2).fill(0);
+    a2[1] = -1; a2[0] = 1;
+    rows.push({ a: a2, b: -cstart - pmin * D });         // -(f - sigma) <= -cstart - pmin*D
+    let a3 = new Array(2).fill(0);
+    a3[1] = 1; a3[0] = -1;
+    rows.push({ a: a3, b: T + cstart });                 // chip
+    if (ctx.exact) {
+      let a4 = new Array(2).fill(0);
+      a4[1] = -1; a4[0] = 1;
+      rows.push({ a: a4, b: -(T + cstart) });
+    }
+    return rows;
+  }
+
+  // chain: u1 <= v1 <= u2 <= v2 <= ... <= vk <= D
+  for (let j = 0; j < k; j++) {
+    let a = new Array(2 + 2 * k).fill(0);
+    a[2 + j] = 1; a[2 + k + j] = -1;                    // u_j - v_j <= 0
+    rows.push({ a, b: 0 });
+    if (j + 1 < k) {
+      let a2 = new Array(2 + 2 * k).fill(0);
+      a2[2 + k + j] = 1; a2[2 + j + 1] = -1;            // v_j - u_{j+1} <= 0
+      rows.push({ a: a2, b: 0 });
+    } else {
+      let a2 = new Array(2 + 2 * k).fill(0);
+      a2[2 + k + j] = 1;                                 // v_k <= D
+      rows.push({ a: a2, b: D });
+    }
+  }
+
+  const idxU = (j) => 2 + j;
+  const idxV = (j) => 2 + k + j;
+
+  // start connector: (0, cstart+sigma) -> (u_1, a_1 + p_1*u_1)
+  {
+    const a1 = pacers[0], p1 = a1.pace, st = a1.start;
+    let r1 = new Array(2 + 2 * k).fill(0);
+    r1[idxU(0)] = p1 - pmax; r1[0] = -1;
+    rows.push({ a: r1, b: cstart - st });                // <= cstart - a_1
+    let r2 = new Array(2 + 2 * k).fill(0);
+    r2[idxU(0)] = pmin - p1; r2[0] = 1;
+    rows.push({ a: r2, b: st - cstart });                 // <= a_1 - cstart
+  }
+  // between connectors: (v_j on pacer j) -> (u_{j+1} on pacer j+1)
+  for (let j = 0; j + 1 < k; j++) {
+    const P = pacers[j], Q = pacers[j + 1];
+    let r1 = new Array(2 + 2 * k).fill(0);
+    r1[idxU(j + 1)] = Q.pace - pmax; r1[idxV(j)] = pmax - P.pace;
+    rows.push({ a: r1, b: P.start - Q.start });
+    let r2 = new Array(2 + 2 * k).fill(0);
+    r2[idxU(j + 1)] = pmin - Q.pace; r2[idxV(j)] = P.pace - pmin;
+    rows.push({ a: r2, b: Q.start - P.start });
+  }
+  // final connector: (v_k on pacer k) -> (D, f)
+  {
+    const P = pacers[k - 1];
+    let r1 = new Array(2 + 2 * k).fill(0);
+    r1[1] = 1; r1[idxV(k - 1)] = pmax - P.pace;
+    rows.push({ a: r1, b: P.start + pmax * D });         // f + (pmax-p_k)v_k <= a_k + pmax*D
+    let r2 = new Array(2 + 2 * k).fill(0);
+    r2[1] = -1; r2[idxV(k - 1)] = P.pace - pmin;
+    rows.push({ a: r2, b: -(pmin * D + P.start) });        // -f + (p_k-pmin)v_k <= -(a_k + pmin*D)
+  }
+  // chip: f - sigma <= T + cstart
+  {
+    let r1 = new Array(2 + 2 * k).fill(0);
+    r1[1] = 1; r1[0] = -1;
+    rows.push({ a: r1, b: T + cstart });
+    if (ctx.exact) {
+      let r2 = new Array(2 + 2 * k).fill(0);
+      r2[1] = -1; r2[0] = 1;
+      rows.push({ a: r2, b: -(T + cstart) });
+    }
+  }
+  return rows;
+}
+
+// Objective coefficient vector for total paced minutes (optionally pinned groups
+// only). paced = sum_j p_j*(v_j - u_j); c[2+j] is the u_j coeff, c[2+k+j] the v_j.
+function objectiveVec(pacers, ctx, pinnedOnly) {
+  const k = pacers.length;
+  const c = new Array(2 + 2 * k).fill(0);
+  for (let j = 0; j < k; j++) {
+    if (pinnedOnly && !ctx.pinned.has(pacers[j].label)) continue;
+    c[2 + j] = -pacers[j].pace;
+    c[2 + k + j] = pacers[j].pace;
+  }
+  return c;
+}
+
+// Solve one itinerary.
+// objective: 'paced' | 'pinned' | 'minStart'
+// floors: { paced: number|null, pinned: number|null } — enforce quantity >= floor
+function solveItinerary(pacers, ctx, objective, floors) {
+  const k = pacers.length;
+  const rows = buildRows(pacers, ctx);
+  let c;
+  if (objective === 'minStart') {
+    // minimize sigma  =>  maximize -sigma
+    c = new Array(2 + 2 * k).fill(0);
+    c[0] = -1;
+  } else {
+    c = objectiveVec(pacers, ctx, objective === 'pinned');
+  }
+  if (floors) {
+    // qty >= floor  <=>  (-qty) <= -floor, where qtyVec·x computes the quantity
+    const addFloor = (qtyVec, floor) => {
+      if (floor == null) return;
+      rows.push({ a: qtyVec.map((v) => -v), b: -floor });
+    };
+    addFloor(objectiveVec(pacers, ctx, false), floors.paced);
+    addFloor(objectiveVec(pacers, ctx, true), floors.pinned);
+  }
+  const A = rows.map((r) => r.a), b = rows.map((r) => r.b);
+  return solveMax(c, A, b);
+}
+
+// Reconstruct a plan (segments) from an LP solution for a given itinerary
+function extractPlan(pacers, ctx, x) {
+  const k = pacers.length;
+  const s = ctx.cstart + x[0];
+  const f = x[1];
+  const segs = [];
+  let prevX = 0, prevT = s;
+  for (let j = 0; j < k; j++) {
+    const u = x[2 + j], v = x[2 + k + j];
+    const P = pacers[j];
+    if (u > prevX + 1e-9) {
+      segs.push({ type: 'solo', from: prevX, to: u, tFrom: prevT, tTo: P.start + P.pace * u });
+    } else if (Math.abs(u - prevX) <= 1e-9) {
+      // degenerate solo segment: check time continuity
+      const tJoin = P.start + P.pace * u;
+      if (Math.abs(tJoin - prevT) > 1e-6) {
+        segs.push({ type: 'solo', from: prevX, to: u, tFrom: prevT, tTo: tJoin });
+      }
+    }
+    if (v > u + 1e-9) {
+      segs.push({ type: 'paced', pacer: P, from: u, to: v, tFrom: P.start + P.pace * u, tTo: P.start + P.pace * v });
+    }
+    prevX = v; prevT = P.start + P.pace * v;
+  }
+  if (D_gt(ctx.D, prevX) || Math.abs(f - prevT) > 1e-6) {
+    segs.push({ type: 'solo', from: prevX, to: ctx.D, tFrom: prevT, tTo: f });
+  }
+  let paced = 0;
+  for (const sg of segs) if (sg.type === 'paced') paced += sg.tTo - sg.tFrom;
+  return { segs, s, f, paced, chip: f - s };
+}
+function D_gt(D, x) { return D > x + 1e-9; }
+
+// Verify a plan against all constraints; returns list of issues (empty = OK)
+function verifyPlan(plan, ctx) {
+  const issues = [];
+  const eps = 1e-6;
+  const { pmin, pmax, D, cstart, smax, T } = ctx;
+  const { s, f, segs } = plan;
+  if (s < cstart - eps || s > smax + eps) issues.push(`start ${s} outside [${cstart}, ${smax}]`);
+  if (f - s > T + 1e-5) issues.push(`chip ${f - s} > T ${T}`);
+  if (ctx.exact && Math.abs(f - s - T) > 1e-5) issues.push(`exact mode: chip ${f - s} != T ${T}`);
+  let prevX = 0, prevT = s;
+  for (const sg of segs) {
+    if (sg.from < prevX - eps || sg.to < sg.from - eps) issues.push('segment order broken');
+    if (Math.abs(sg.tFrom - prevT) > 1e-5 && Math.abs(sg.from - prevX) < eps) issues.push('time discontinuity');
+    if (sg.from > prevX + eps && Math.abs(sg.tFrom - prevT) > 1e-5) issues.push('time discontinuity (nonzero gap)');
+    if (sg.type === 'solo') {
+      const dx = sg.to - sg.from;
+      if (dx > eps) {
+        const pace = (sg.tTo - sg.tFrom) / dx;
+        if (pace < pmin - 1e-6 || pace > pmax + 1e-6) issues.push(`solo pace ${pace} outside band [${pmin}, ${pmax}]`);
+      } else if (Math.abs(sg.tTo - sg.tFrom) > 1e-5) {
+        issues.push('zero-distance solo segment with nonzero time');
+      }
+    } else {
+      const P = sg.pacer;
+      if (Math.abs(sg.tFrom - (P.start + P.pace * sg.from)) > 1e-5) issues.push('paced segment off pacer line');
+      if (Math.abs(sg.tTo - (P.start + P.pace * sg.to)) > 1e-5) issues.push('paced segment off pacer line (end)');
+    }
+    prevX = sg.to; prevT = sg.tTo;
+  }
+  if (prevX < D - 1e-6) issues.push('plan does not reach finish');
+  return issues;
+}
+
+// Enumerate all ordered subsets (permutations of subsets) of eligible pacers
+function permutations(arr, k) {
+  if (k === 0) return [[]];
+  const out = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+    for (const tail of permutations(rest, k - 1)) out.push([arr[i], ...tail]);
+  }
+  return out;
+}
+
+function solveBestPlan(input) {
+  const { pacers, D, cstart, smax, T, band, exact } = input;
+  const pinned = new Set(input.pinnedLabels || []);
+  const p0 = T / D, pmin = p0 - band, pmax = p0 + band;
+  const ctx = { D, cstart, smax, T, pmin, pmax, exact, pinned };
+  const elig = pacers.filter(
+    (p) => p.pace >= pmin - 1e-9 && p.pace <= pmax + 1e-9
+  );
+
+  let best = null; // {paced, pinned, k, s, plan, pacers}
+  const better = (cand, b) => {
+    if (!b) return true;
+    if (pinned.size) {
+      // pinned instances: lexicographic — pinned minutes first, total paced second
+      if (cand.pinned > b.pinned + 1e-7) return true;
+      if (cand.pinned < b.pinned - 1e-7) return false;
+    }
+    if (cand.paced > b.paced + 1e-7) return true;
+    if (cand.paced < b.paced - 1e-7) return false;
+    if (cand.k !== b.k) return cand.k < b.k;
+    return cand.s < b.s - 1e-7;
+  };
+  for (let k = 1; k <= elig.length; k++) {
+    for (const itin of permutations(elig, k)) {
+      // Note: pinned groups are NOT forced into the itinerary — the pinned
+      // objective itself maximizes minutes with them; an itinerary that cannot
+      // ride a pinned group scores 0 on that objective and is skipped below.
+      let lp1, floors2, pinnedObj = null;
+      if (!pinned.size) {
+        lp1 = solveItinerary(itin, ctx, 'paced');
+        if (lp1.status !== 'OPTIMAL') continue;
+        floors2 = { paced: lp1.obj - 1e-7 };
+      } else {
+        // maximize minutes on the pinned groups first (a zero-length touchpoint
+        // doesn't count: the pinned group can't actually be ridden)
+        const lpA = solveItinerary(itin, ctx, 'pinned');
+        if (lpA.status !== 'OPTIMAL' || lpA.obj <= 1e-6) continue;
+        // then maximize total paced minutes without giving up pinned minutes
+        lp1 = solveItinerary(itin, ctx, 'paced', { pinned: lpA.obj - 1e-7 });
+        if (lp1.status !== 'OPTIMAL') continue;
+        pinnedObj = lpA.obj;
+        floors2 = { paced: lp1.obj - 1e-7, pinned: lpA.obj - 1e-7 };
+      }
+      const lp2 = solveItinerary(itin, ctx, 'minStart', floors2);
+      const x = lp2.status === 'OPTIMAL' ? lp2.x : lp1.x;
+      const plan = extractPlan(itin, ctx, x);
+      const cand = { paced: lp1.obj, pinned: pinnedObj, k, s: plan.s, plan, pacers: itin, ctx };
+      if (better(cand, best)) best = cand;
+    }
+  }
+  const result = {
+    ctx, elig, best,
+    issues: best ? verifyPlan(best.plan, ctx) : [],
+  };
+  return result;
+}
+
+// Per-eligible-group usability analysis for UI hints.
+// rideable:  some plan rides this group a positive distance and still hits the
+//            goal (the same test the pin feature uses)
+// touchable: the runner's band-pace path can physically meet the pacer's line,
+//            ignoring the goal-time constraint (necessary for any ride)
+// behind:    when not touchable, whether the pacer starts after the runner's
+//            window (true) or crossed the line earlier (false)
+function groupReachability(input) {
+  const { pacers, D, cstart, smax, T, band, exact } = input;
+  const p0 = T / D, pmin = p0 - band, pmax = p0 + band;
+  const elig = pacers.filter(
+    (p) => p.pace >= pmin - 1e-9 && p.pace <= pmax + 1e-9
+  );
+  const out = new Map();
+  for (const P of elig) {
+    // Touch test: the runner's arrival time at mile x can be any value in
+    // [cstart + pmin*x, smax + pmax*x] (start window x band paces). The pacer's
+    // line is touchable at x iff P.start + P.pace*x falls in that window. Both
+    // edge inequalities are lower bounds on x (eligible pacers have
+    // pmin <= P.pace <= pmax, so the pace differences are non-negative).
+    let xMin = 0;
+    if (P.pace > pmin + 1e-12) {
+      xMin = Math.max(xMin, (cstart - P.start) / (P.pace - pmin));
+    } else if (P.start < cstart - 1e-9) {
+      xMin = Infinity; // parallel to the fastest line and permanently ahead
+    }
+    if (pmax > P.pace + 1e-12) {
+      xMin = Math.max(xMin, (P.start - smax) / (pmax - P.pace));
+    } else if (P.start > smax + 1e-9) {
+      xMin = Infinity; // parallel to the slowest line and permanently behind
+    }
+    const touchable = xMin <= D - 1e-9; // touch must leave room for a ride
+    // Rideable: a single-group itinerary suffices — any paced segments besides
+    // this group's can be replaced by solo running within the band without
+    // finishing later (paced time is at band pace), so the single-group
+    // pinned LP decides feasibility. One LP per group, no full enumeration.
+    const ctx = { D, cstart, smax, T, pmin, pmax, exact, pinned: new Set([P.label]) };
+    const lp = solveItinerary([P], ctx, 'pinned');
+    const rideable = lp.status === 'OPTIMAL' && lp.obj > 1e-6;
+    out.set(P.label, { touchable, rideable, behind: P.start > smax + 1e-9 });
+  }
+  return out;
+}
+</script>
+<script>
+/* Pacer Relay Planner — UI layer. Requires lp.js + plan.js code above. */
+(function () {
+  'use strict';
+
+  const CORRALS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  const DEFAULT_CORRAL_STARTS = { A: 0, B: 3, C: 9, D: 15, E: 27, F: 39, G: 51 }; // minutes after 5:00
+  const DEFAULT_PACERS = [
+    { chip: 105, corral: 'A', start: 0.5 },
+    { chip: 120, corral: 'A', start: 1.5 },
+    { chip: 130, corral: 'B', start: 3.5 },
+    { chip: 135, corral: 'B', start: 6.0 },
+    { chip: 140, corral: 'C', start: 9.5 },
+    { chip: 150, corral: 'D', start: 15.5 },
+    { chip: 160, corral: 'D', start: 21.0 },
+    { chip: 170, corral: 'E', start: 27.5 },
+    { chip: 180, corral: 'E', start: 33.0 },
+    { chip: 180, corral: 'F', start: 39.5 },
+    { chip: 190, corral: 'F', start: 45.0 },
+    { chip: 200, corral: 'G', start: 51.5 },
+    { chip: 210, corral: 'G', start: 58.0 },
+  ];
+
+  // ---------- state ----------
+  const state = {
+    corralStarts: { ...DEFAULT_CORRAL_STARTS },
+    pacers: DEFAULT_PACERS.map(p => ({ ...p })),
+    pinned: [], // pace-group labels forced into the plan
+  };
+
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+
+  function parseDuration(str) { // "2:30" | "2:30:30" -> minutes (or null)
+    if (!str) return null;
+    const m = String(str).trim().match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+    if (!m) return null;
+    const h = +m[1], min = +m[2], sec = m[3] ? +m[3] : 0;
+    if (min > 59 || sec > 59) return null;
+    return h * 60 + min + sec / 60;
+  }
+  function parseClock(str) { // "5:15" | "5:15:30" | "6:30" -> minutes after 5:00 (or null)
+    if (!str) return null;
+    const m = String(str).trim().match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+    if (!m) return null;
+    const h = +m[1], min = +m[2], sec = m[3] ? +m[3] : 0;
+    if (min > 59 || sec > 59) return null;
+    return (h - 5) * 60 + min + sec / 60;
+  }
+  function fmtClock(min) { // minutes after 5:00 -> "5:27:30 AM"
+    let t = Math.round(min * 60);
+    let h = 5 + Math.floor(t / 3600); t %= 3600;
+    const mnt = Math.floor(t / 60), s = t % 60;
+    const ampm = h < 12 ? 'AM' : 'PM';
+    let hh = h % 12; if (hh === 0) hh = 12;
+    return `${hh}:${String(mnt).padStart(2, '0')}:${String(s).padStart(2, '0')} ${ampm}`;
+  }
+  function fmtClockShort(min) {
+    let t = Math.round(min * 60);
+    let h = 5 + Math.floor(t / 3600); t %= 3600;
+    const mnt = Math.floor(t / 60);
+    const ampm = h < 12 ? 'AM' : 'PM';
+    let hh = h % 12; if (hh === 0) hh = 12;
+    return `${hh}:${String(mnt).padStart(2, '0')} ${ampm}`;
+  }
+  function fmtDur(min) { // 150.5 -> "2:30:30"
+    let t = Math.round(min * 60);
+    const h = Math.floor(t / 3600); t %= 3600;
+    const m = Math.floor(t / 60), s = t % 60;
+    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+                 : `${m}:${String(s).padStart(2, '0')}`;
+  }
+  function fmtDurShort(min) { // 150 -> "2:30", 150.5 -> "2:30:30"
+    const d = fmtDur(min);
+    return d.endsWith(':00') ? d.slice(0, -3) : d;
+  }
+  function fmtPace(minPerMi) { // 13.71 -> "13:43"
+    const t = Math.round(minPerMi * 60);
+    return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+  }
+  const RUN_WALK_TABLE = [
+    [480, 240], [549, 120], [595, 90], [618, 90],
+    [641, 90], [686, 60], [732, 60], [778, 30],
+    [823, 30], [869, 20], [914, 15], [960, 15]
+  ];
+
+  function runWalkRecommendation(minPerMi) {
+    const paceSeconds = minPerMi * 60;
+    if (!Number.isFinite(paceSeconds) || paceSeconds <= 0) return '';
+    const nearest = RUN_WALK_TABLE.reduce((best, entry) => {
+      const delta = Math.abs(entry[0] - paceSeconds);
+      const bestDelta = Math.abs(best[0] - paceSeconds);
+      return delta < bestDelta - 1e-9 ||
+        (Math.abs(delta - bestDelta) <= 1e-9 && entry[0] > best[0]) ? entry : best;
+    });
+    const run = nearest[1], walk = 30;
+    const gcd = (a, b) => b ? gcd(b, a % b) : a;
+    const divisor = gcd(run, walk);
+    const interval = `${Math.floor(run / 60)}:${String(run % 60).padStart(2, '0')}`;
+    return `<span class="d run-walk">Run ${interval} / Walk 0:30 ·  <span class="run-walk-match">(closest to ${fmtPace(nearest[0] / 60)}/mi pacers ratio) </span></span>`;
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&', '<': '<', '>': '>', '"': '"' }[c])); }
+
+  // ---------- persistence ----------
+  // Settings are in-memory (sandboxed preview iframes block web storage);
+  // the tool re-initializes from the Wine & Dine defaults on each visit.
+
+  // ---------- assumptions panel ----------
+  function renderCorralStarts() {
+    const host = $('corral-starts');
+    host.innerHTML = CORRALS.map(c => `
+      <label class="field">Corral ${c}
+        <input type="text" data-cs="${c}" value="${fmtClock(state.corralStarts[c])}"
+               inputmode="numeric" aria-label="Corral ${c} start time">
+      </label>`).join('');
+  }
+  function renderPacerTable() {
+    const tb = $('pacer-table').querySelector('tbody');
+    tb.innerHTML = state.pacers.map((p, i) => `
+      <tr data-i="${i}">
+        <td><input type="text" data-f="chip" value="${fmtDur(p.chip)}" inputmode="numeric" aria-label="Finish time"></td>
+        <td><input type="text" data-f="corral" value="${esc(p.corral)}" maxlength="2" aria-label="Corral" style="width:3.2rem"></td>
+        <td><input type="text" data-f="start" value="${fmtClock(p.start)}" inputmode="numeric" aria-label="Start time"></td>
+        <td class="rm"><button class="btn small" data-rm="${i}" aria-label="Remove">✕</button></td>
+      </tr>`).join('');
+  }
+
+  function readPacers() {
+    return state.pacers.map(p => {
+      const chip = p.chip, corral = (p.corral || '?').trim();
+      return { label: fmtDurShort(chip) + (chipLabelDup(chip) ? ` · ${corral}` : ''), chip, corral, start: p.start, pace: p.chip / dist() };
+    });
+    function chipLabelDup(chip) {
+      return state.pacers.filter(q => q.chip === chip).length > 1;
+    }
+  }
+  function dist() { return Math.max(1, parseFloat($('dist').value) || 13.1094); }
+
+  // ---------- core compute ----------
+  let computeTimer = null;
+  function scheduleCompute() {
+    clearTimeout(computeTimer);
+    computeTimer = setTimeout(compute, 120);
+  }
+
+  function compute() {
+    const goalStr = $('goal').value;
+    const T = parseDuration(goalStr);
+    const notices = [];
+    const results = $('results');
+    const D = dist();
+    const goalPace = T != null ? T / D : null;
+    $('goal-pace-hint').textContent = T != null ? `${fmtPace(goalPace)}/mi goal pace` : 'Use H:MM or H:MM:SS';
+    const corral = $('corral').value;
+    const cs = state.corralStarts[corral];
+    $('corral-hint').textContent = `Corral ${corral} opens ${fmtClockShort(cs)}`;
+
+    if (T == null || T < 60 || T > 420) {
+      $('notices').innerHTML = `<div class="notice warn">Enter a goal finish time between 1:00 and 7:00 (for example 2:30).</div>`;
+      results.innerHTML = '';
+      return;
+    }
+    const band = Math.min(3, Math.max(0.05, parseFloat($('band').value) || 1));
+    let smax = parseClock($('smax').value) ?? 58;
+    let fixedStart = parseClock($('fixed-start').value);
+    if ($('fixed-start').value.trim() !== '' && fixedStart == null) {
+      notices.push({ cls: 'warn', msg: 'Couldn\'t read your fixed start time — using 5:00 AM. Format like 5:15.' });
+      fixedStart = 0;
+    }
+    let cstart = cs;
+    if (fixedStart != null) {
+      if (fixedStart < cs - 1e-9) {
+        notices.push({ cls: 'warn', msg: `You can't start before corral ${corral} opens (${fmtClock(cs)}) — using your corral start.` });
+        fixedStart = cs;
+      } else if (fixedStart > smax + 1e-9) {
+        notices.push({ cls: 'warn', msg: `Your fixed start is after the latest allowed (${fmtClock(smax)}) — using ${fmtClock(smax)}.` });
+        fixedStart = smax;
+      }
+      cstart = fixedStart;
+      smax = fixedStart; // pin the start exactly
+    }
+
+    const pacers = readPacers().filter(p => p.chip >= 30 && p.chip <= 600 && p.start != null && isFinite(p.start));
+    const pins = state.pinned.slice();
+    const baseInput = { pacers, D, cstart, smax, T, band, exact: $('exact').checked };
+    const res = solveBestPlan({ ...baseInput, pinnedLabels: pins });
+    let unconstrained = null;
+    if (pins.length) {
+      // for the "cost of pinning" note, or the fallback when pinned is infeasible
+      unconstrained = solveBestPlan(baseInput);
+    }
+    // per-group usability (eligible but unusable pills get a distinct style)
+    const reach = groupReachability(baseInput);
+
+    // fallback solo plan when no paced plan exists
+    let plan, best, elig = (pins.length && !res.best && unconstrained) ? unconstrained.elig : res.elig;
+    if (res.best) {
+      best = res.best; plan = best.plan;
+    } else if (unconstrained && unconstrained.best) {
+      best = unconstrained.best; plan = best.plan;
+    } else {
+      const s = cstart;
+      plan = { segs: [{ type: 'solo', from: 0, to: D, tFrom: s, tTo: s + T }], s, f: s + T, paced: 0, chip: T };
+      if (fixedStart != null) plan.segs[0] = { type: 'solo', from: 0, to: D, tFrom: fixedStart, tTo: fixedStart + T };
+      if (elig.length === 0) {
+        const sorted = pacers.map(p => ({ p, d: Math.abs(p.pace - goalPace) })).sort((a, b) => a.d - b.d);
+        const near = sorted.slice(0, 2).map(x => `${x.p.label} (needs ±${fmtPace(x.d)}/mi)`).join(' or ');
+        notices.push({ cls: 'info', msg: `No pace group is within ±${fmtPace(band)}/mi of your ${fmtPace(goalPace)}/mi goal pace — the closest ${sorted.length > 1 ? 'groups are' : 'group is'} ${near}. Here's a solo plan at goal pace.` });
+      } else {
+        notices.push({ cls: 'warn', msg: `The ${elig.map(p => p.label).join(', ')} group${elig.length > 1 ? 's' : ''} fit${elig.length > 1 ? '' : 's'} your pace band, but none can be caught in time from corral ${corral} with a ${fmtDur(T)} goal. Here's a solo plan at goal pace.` });
+      }
+    }
+    if (pins.length && !res.best) {
+      const ineligPins = pins.filter(l => !res.elig.some(p => p.label === l));
+      if (ineligPins.length) {
+        notices.push({ cls: 'warn', msg: `Pinned group ${ineligPins.join(', ')} is outside your ±${fmtPace(band)}/mi pace band for this goal — unpin it (click it again) or widen the band. Showing the best plan without it.` });
+      } else {
+        notices.push({ cls: 'warn', msg: `No plan can ride with ${pins.join(' and ')} and still hit ${fmtDur(T)} — showing the best plan without the pin. Click the group again to unpin.` });
+      }
+    } else if (pins.length && res.best && unconstrained && unconstrained.best) {
+      const cost = unconstrained.best.paced - res.best.paced;
+      // pinned groups actually ridden (positive-length segments only)
+      const ridden = plan.segs
+        .filter(sg => sg.type === 'paced' && sg.to > sg.from + 1e-9 && pins.includes(sg.pacer.label))
+        .map(sg => sg.pacer.label);
+      const riddenTxt = ridden.length ? ` — riding with ${ridden.join(' + ')}` : '';
+      const costTxt = cost > 0.5
+        ? `It gives up ${fmtDur(cost)} of total pacer time versus the best overall plan.`
+        : 'It costs nothing versus the best overall plan.';
+      notices.push({ cls: 'info', msg: `Maximum combined time with your selected group${pins.length > 1 ? 's' : ''}: ${fmtDur(res.best.pinned)}${riddenTxt} — the most possible while hitting your goal. ${costTxt}` });
+    }
+    if (res.best && res.issues.length) {
+      notices.push({ cls: 'warn', msg: 'Warning: the computed plan failed internal verification — please double-check it: ' + res.issues.join('; ') });
+    }
+    const waitMin = plan.s - cs;
+    if (res.best && fixedStart == null && waitMin > 15) {
+      notices.push({ cls: 'info', msg: `Your best plan has you crossing the start ${Math.round(waitMin)} minutes after your corral opens — hang back near the corral entrance and let the waves go by.` });
+    }
+
+    $('notices').innerHTML = notices.map(n => `<div class="notice ${n.cls}">${esc(n.msg)}</div>`).join('');
+    renderResults({ plan, best, pacers, elig, reach, T, band, goalPace, D, corral, cs });
+  }
+
+  // ---------- render ----------
+  function renderResults({ plan, best, pacers, elig, reach, T, band, goalPace, D, corral, cs }) {
+    const host = $('results');
+    const pct = Math.min(100, plan.paced / T * 100);
+    const chipBuf = T - plan.chip;
+    // groups the plan actually rides (positive-length paced segments only)
+    const usedLabels = plan.segs
+      .filter(sg => sg.type === 'paced' && sg.to > sg.from + 1e-9)
+      .map(sg => sg.pacer.label);
+    const clickable = new Set([...elig.map(p => p.label), ...state.pinned]);
+
+    const stats = `
+      <section class="card" aria-label="Your plan">
+        <div class="stat-row">
+          <div class="stat hero"><div class="k">Time with pacers</div>
+            <div class="v">${fmtDur(plan.paced)} <small>${pct < 0.05 ? '' : `(${Math.round(pct)}% of race)`}</small></div></div>
+          <div class="stat"><div class="k">Chip finish</div>
+            <div class="v">${fmtDur(plan.chip)}${chipBuf > 0.5 ? ` <small>${fmtDur(chipBuf)} under goal</small>` : ''}</div></div>
+
+
+
+        </div>
+
+
+        <ol class="steps">${renderSteps({ plan, best, goalPace, T, corral, cs, D })}</ol>
+        <figure class="chart-card">${renderChart({ plan, best, pacers, elig, reach, D })}
+          <figcaption>Gold = running with a pace group · blue = on your own · faint lines = pace groups
+            (tinted if in your ±${fmtPace(band)}/mi band and usable in a plan that hits your goal). Distance vs. clock time.</figcaption>
+        </figure>
+      </section>`;
+    host.innerHTML = stats;
+  }
+
+  function renderSteps({ plan, best, goalPace, T, corral, cs, D }) {
+    const items = [];
+    // suppress float-noise touchpoints (residuals <= ~1e-8 mi; smallest genuine
+    // segment is ~0.08 mi) — a display filter only, no solver constraint
+    const segs = plan.segs.filter(sg => sg.to - sg.from > 1e-6);
+    // step 1: start
+    let startNote;
+    if (Math.abs(plan.s - cs) < 0.25) startNote = `at the front of corral ${corral}`;
+    else {
+      let launchCorral = corral;
+      for (const c of CORRALS) if (state.corralStarts[c] <= plan.s + 1e-9) launchCorral = c;
+      const late = Math.round(plan.s - cs);
+      startNote = `${late} min after your corral opens (corral ${launchCorral} will be launching)`;
+    }
+    items.push(`<li><span class="t">Cross the start line at ${fmtClock(plan.s)}</span>
+      <span class="d">${esc(startNote)} — your chip clock starts now</span></li>`);
+    for (const sg of segs) {
+      if (sg.type === 'paced') {
+        const P = sg.pacer;
+        const toFinish = sg.to > D - 1e-9;
+        items.push(`<li class="paced"><span class="t">Run with the ${esc(P.label)} group${toFinish ? ' through the finish' : ''}</span>
+          <span class="d">Mile ${sg.from.toFixed(2)} → ${toFinish ? 'finish' : sg.to.toFixed(2)}
+           (${fmtClock(sg.tFrom)} → ${fmtClock(sg.tTo)}) · ${fmtPace(P.pace)}/mi
+           <span class="tag paced">paced</span></span>
+          ${runWalkRecommendation(P.pace)}</li>`);
+      } else {
+        const dx = sg.to - sg.from;
+        if (dx < 1e-9) continue;
+        const pace = (sg.tTo - sg.tFrom) / dx;
+        const diff = pace - goalPace;
+        let rel;
+        if (Math.abs(diff) < 1 / 30) rel = `<span class="tag solo">right at goal pace</span>`;
+        else if (diff < 0) rel = `<span class="tag solo fast">${fmtPace(-diff)}/mi faster than goal</span>`;
+        else rel = `<span class="tag solo slow">${fmtPace(diff)}/mi slower than goal</span>`;
+        items.push(`<li><span class="t">Run on your own${sg.to > D - 1e-9 ? ' to the finish' : ''}</span>
+          <span class="d">Mile ${sg.from.toFixed(2)} → ${sg.to > D - 1e-9 ? 'finish' : sg.to.toFixed(2)}
+           (${fmtClock(sg.tFrom)} → ${fmtClock(sg.tTo)}) · ${fmtPace(pace)}/mi ${rel}</span>
+          ${runWalkRecommendation(pace)}</li>`);
+      }
+    }
+    const chipBuf = T - plan.chip;
+    items.push(`<li><span class="t">Cross the finish line at ${fmtClock(plan.f)}</span>
+      <span class="d">Chip time ${fmtDur(plan.chip)}${chipBuf > 0.5 ? ` — ${fmtDur(chipBuf)} under your goal` : ' — right on your goal'}</span></li>`);
+    items.push(`<li class="run-walk-note"><span class="d">Run/walk recommendations use the closest pace in your table; every walk is 30 seconds. Exact ties use the slower table pace. These recommendations do not change segment times or guarantee that a pacer group follows the same intervals.</span></li>`);
+    return items.join('');
+  }
+
+  // ---------- chart ----------
+  function renderChart({ plan, best, pacers, elig, reach, D }) {
+    const W = 880, H = 540, mL = 62, mR = 108, mT = 16, mB = 38;
+    const plotW = W - mL - mR, plotH = H - mT - mB;
+    const tMax = Math.max(plan.f, ...pacers.map(p => p.start + p.chip)) + 4;
+    const tMin = -5;
+    const X = (x) => mL + (x / D) * plotW;
+    const Y = (t) => mT + plotH - ((t - tMin) / (tMax - tMin)) * plotH;
+
+    let s = '';
+    // grid + axes
+    for (let mi = 0; mi <= D + 0.01; mi += 1) {
+      if (mi % 2 === 0 || Math.abs(mi - D) < 0.01) {
+        s += `<line x1="${X(mi)}" y1="${mT}" x2="${X(mi)}" y2="${mT + plotH}" stroke="#eee7da" stroke-width="1"/>`;
+        s += `<text x="${X(Math.min(mi, D))}" y="${H - mB + 18}" font-size="12" fill="#5c6380" text-anchor="middle">${Math.abs(mi - D) < 0.01 ? '13.1' : mi}</text>`;
+      }
+    }
+    for (let t = 0; t <= tMax; t += 15) {
+      if (t % 30 === 0) {
+        s += `<line x1="${mL}" y1="${Y(t)}" x2="${mL + plotW}" y2="${Y(t)}" stroke="#eee7da"/>`;
+        if (t >= 60) s += `<text x="${mL - 8}" y="${Y(t) + 4}" font-size="12" fill="#5c6380" text-anchor="end">${fmtClockShort(t)}</text>`;
+      } else {
+        s += `<line x1="${mL}" y1="${Y(t)}" x2="${mL + plotW}" y2="${Y(t)}" stroke="#f4efe4"/>`;
+      }
+    }
+    // corral markers (inside plot edge, white-haloed)
+    for (const c of CORRALS) {
+      const t = state.corralStarts[c];
+      if (t < tMin || t > tMax) continue;
+      s += `<text x="${mL + 6}" y="${Y(t) - 5}" font-size="12" font-weight="700" fill="#9aa0b8" stroke="#fff" stroke-width="3" paint-order="stroke">${c}</text>`;
+      s += `<line x1="${mL - 4}" y1="${Y(t)}" x2="${mL + 3}" y2="${Y(t)}" stroke="#9aa0b8" stroke-width="2"/>`;
+    }
+    // pacer lines + right-edge labels (with collision avoidance)
+    // used = actually ridden (positive-length paced segments), not itinerary membership
+    const usedLabels = plan.segs
+      .filter(sg => sg.type === 'paced' && sg.to > sg.from + 1e-9)
+      .map(sg => sg.pacer.label);
+    const labelYs = [];
+    const placed = [];
+    for (const p of pacers) {
+      const used = usedLabels.includes(p.label);
+      // "on" = eligible AND usable in some goal-hitting plan (unreachable
+      // groups render faint, like out-of-band ones)
+      const on = elig.includes(p) && !(reach && reach.get(p.label) && !reach.get(p.label).rideable);
+      const color = used ? '#d97b00' : on ? '#8fa9e8' : '#d9d4c8';
+      const wdt = used ? 3 : on ? 1.6 : 1.1;
+      s += `<line x1="${X(0)}" y1="${Y(p.start)}" x2="${X(D)}" y2="${Y(p.start + p.chip)}" stroke="${color}" stroke-width="${wdt}"/>`;
+      labelYs.push({ y: Y(p.start + p.chip), p, used, on });
+    }
+    // enforce minimum vertical gap between labels (push downward, then clamp)
+    labelYs.sort((a, b) => a.y - b.y);
+    const minGap = 14;
+    for (let i = 1; i < labelYs.length; i++) {
+      if (labelYs[i].y < labelYs[i - 1].y + minGap) labelYs[i].y = labelYs[i - 1].y + minGap;
+    }
+    const yBottom = Y(tMin) - 4;
+    for (let i = labelYs.length - 2; i >= 0; i--) {
+      if (labelYs[i].y > yBottom - (labelYs.length - 1 - i) * minGap) labelYs[i].y = yBottom - (labelYs.length - 1 - i) * minGap;
+      if (labelYs[i + 1].y - labelYs[i].y < minGap) labelYs[i].y = labelYs[i + 1].y - minGap;
+    }
+    for (const L of labelYs) {
+      s += `<text x="${X(D) + 6}" y="${L.y + 4}" font-size="12" fill="${L.used ? '#8a5200' : L.on ? '#5470b8' : '#b3ae9f'}">${esc(L.p.label)}</text>`;
+    }
+    // runner trajectory
+    let px = 0, pt = plan.s;
+    const push = (x, t, type) => {
+      if (type === 'paced') {
+        s += `<line x1="${X(px)}" y1="${Y(pt)}" x2="${X(x)}" y2="${Y(t)}" stroke="#d97b00" stroke-width="5" stroke-linecap="round"/>`;
+      } else if (x > px + 1e-9) {
+        s += `<line x1="${X(px)}" y1="${Y(pt)}" x2="${X(x)}" y2="${Y(t)}" stroke="#2456c4" stroke-width="3" stroke-linecap="round"/>`;
+      }
+      px = x; pt = t;
+    };
+    for (const sg of plan.segs) {
+      push(sg.to, sg.tTo, sg.type);
+    }
+    // start & finish dots
+    s += `<circle cx="${X(0)}" cy="${Y(plan.s)}" r="6" fill="#2456c4" stroke="#fff" stroke-width="2"/>`;
+    s += `<text x="${X(0) + 12}" y="${Y(plan.s) + 4}" font-size="12" font-weight="700" fill="#2456c4" stroke="#fff" stroke-width="3" paint-order="stroke">You start</text>`;
+    s += `<circle cx="${X(D)}" cy="${Y(plan.f)}" r="6" fill="#1d7a4c" stroke="#fff" stroke-width="2"/>`;
+    s += `<text x="${X(D) - 8}" y="${Y(plan.f) - 12}" font-size="12" font-weight="700" fill="#1d7a4c" stroke="#fff" stroke-width="3" paint-order="stroke" text-anchor="end">Finish ${fmtDur(plan.chip)}</text>`;
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Chart of your trajectory versus the pace groups, distance versus clock time">${s}</svg>`;
+  }
+
+  // ---------- events ----------
+  function bindEvents() {
+    for (const id of ['goal', 'corral', 'fixed-start', 'band', 'offset', 'smax', 'dist']) {
+      $(id).addEventListener('input', scheduleCompute);
+      $(id).addEventListener('change', scheduleCompute);
+    }
+    $('exact').addEventListener('change', scheduleCompute);
+
+    // pin toggle: click an eligible group chip to force it into the plan
+    $('results').addEventListener('click', (e) => {
+      const chip = e.target.closest('button.chip[data-label]');
+      if (!chip || chip.disabled) return;
+      const label = chip.dataset.label;
+      const i = state.pinned.indexOf(label);
+      if (i >= 0) state.pinned.splice(i, 1);
+      else state.pinned.push(label);
+      scheduleCompute();
+    });
+
+    $('corral-starts').addEventListener('input', (e) => {
+      const c = e.target.dataset.cs;
+      if (!c) return;
+      const v = parseClock(e.target.value);
+      if (v != null) { state.corralStarts[c] = v; scheduleCompute(); }
+    });
+    $('pacer-table').addEventListener('input', (e) => {
+      const f = e.target.dataset.f;
+      if (!f) return;
+      const tr = e.target.closest('tr');
+      const i = +tr.dataset.i;
+      if (f === 'chip') { const v = parseDuration(e.target.value); if (v != null) state.pacers[i].chip = v; }
+      if (f === 'corral') { state.pacers[i].corral = e.target.value.trim(); }
+      if (f === 'start') { const v = parseClock(e.target.value); if (v != null) state.pacers[i].start = v; }
+      if (f !== 'start') state.pinned = []; // chip/corral edits change group labels
+      scheduleCompute();
+    });
+    $('pacer-table').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-rm]');
+      if (!btn) return;
+      if (state.pacers.length > 1) { state.pacers.splice(+btn.dataset.rm, 1); state.pinned = []; renderPacerTable(); scheduleCompute(); }
+    });
+    $('add-pacer').addEventListener('click', () => {
+      state.pacers.push({ chip: 180, corral: 'A', start: 0.5 });
+      renderPacerTable(); scheduleCompute();
+    });
+    $('rederive').addEventListener('click', () => {
+      const offset = (parseFloat($('offset').value) || 30) / 60;
+      const byCorral = {};
+      for (const p of state.pacers) (byCorral[p.corral] = byCorral[p.corral] || []).push(p);
+      for (const [c, list] of Object.entries(byCorral)) {
+        list.sort((a, b) => a.chip - b.chip);
+        const cs = state.corralStarts[c];
+        if (cs == null) continue;
+        const nextIdx = CORRALS.indexOf(c);
+        const last = nextIdx >= CORRALS.length - 1;
+        const next = last ? null : state.corralStarts[CORRALS[nextIdx + 1]];
+        list.forEach((p, i) => {
+          if (i === 0) p.start = cs + offset;
+          // last corral: no next corral — the trailing group goes 7 min after the
+          // corral opens (5:58 for G in the default data)
+          else if (last) p.start = cs + 7;
+          else p.start = (cs + next) / 2;
+        });
+      }
+      renderPacerTable(); scheduleCompute();
+    });
+    $('reset').addEventListener('click', () => {
+      state.corralStarts = { ...DEFAULT_CORRAL_STARTS };
+      state.pacers = DEFAULT_PACERS.map(p => ({ ...p }));
+      state.pinned = [];
+      $('goal').value = '2:30'; $('corral').value = 'C'; $('fixed-start').value = '';
+      $('exact').checked = false; $('band').value = '1'; $('offset').value = '30';
+      $('smax').value = '5:58'; $('dist').value = '13.1094';
+      renderCorralStarts(); renderPacerTable(); scheduleCompute();
+    });
+  }
+
+  // ---------- init ----------
+  renderCorralStarts();
+  renderPacerTable();
+  bindEvents();
+  compute();
+})();
+
+</script>
+<script data-pplx-inline-edit>
+(function () {
+  if (window === window.top) return;
+
+  const allowedParentOrigins = ["https://www.perplexity.ai","https://perplexity.ai","https://testing.perplexity.ai","https://staging.perplexity.ai","https://*.preview.i.perplexity.ai","http://perplexity.localhost","http://localhost:1420","http://127.0.0.1:1420","http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173"];
+  const MAX_FONT_BYTES = 500 * 1024;
+  const MAX_TOTAL_FONT_BYTES = 2 * 1024 * 1024;
+  const DEFAULT_LINE_HEIGHT = 16;
+  let scrollForwarding = false;
+  let scrollRaf = 0;
+  let trustedTopOrigin = null;
+
+  // Allow entries like "https://*.preview.i.perplexity.ai" — the wildcard
+  // matches a single DNS label (no dots), so "https://*.foo" cannot stretch
+  // across multiple labels.
+  function matchesAllowedOrigin(origin) {
+    if (!origin) return false;
+    for (const entry of allowedParentOrigins) {
+      if (!entry.includes("*")) {
+        if (entry === origin) return true;
+        continue;
+      }
+      const pattern = new RegExp(
+        "^" +
+          entry.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^.]+") +
+          "$",
+      );
+      if (pattern.test(origin)) return true;
+    }
+    return false;
+  }
+
+  // Trust decision: when the sender is same-origin-visible (event.origin is a
+  // real origin like https://www.perplexity.ai) we trust event.origin directly.
+  // When event.origin is "null" (opaque broker srcdoc), we fall back to the
+  // broker's stamped `parentOrigin` to identify the top window. The fallback
+  // is claim-only — we rely on the browser's native `targetOrigin` enforcement
+  // on the response path (see postToTrustedTop) to ensure replies can't be
+  // delivered to anyone but the actual top window of that claimed origin.
+  function getTrustedParentOrigin(event) {
+    const forwardedParentOrigin =
+      typeof event.data.parentOrigin === "string" ? event.data.parentOrigin : null;
+    const parentOrigin = event.origin === "null" ? forwardedParentOrigin : event.origin;
+    return matchesAllowedOrigin(parentOrigin) ? parentOrigin : null;
+  }
+
+  // All responses go to window.top with targetOrigin = the allowlisted origin.
+  // An attacker that iframes us inside their own null-origin broker can claim
+  // any parentOrigin they like, but the browser will drop the reply whenever
+  // the real top's origin doesn't match — so the screenshot never leaves.
+  function postToTrustedTop(message) {
+    if (!trustedTopOrigin) return;
+    try {
+      window.top.postMessage(message, trustedTopOrigin);
+    } catch (_error) {}
+  }
+
+  const PICK_CAPABILITIES = ["pick"];
+  const PICK_CHAIN_LENGTH = 4;
+  const PICK_MAX_TEXT_CHARS = 120;
+  const PICK_MAX_HTML_CHARS = 300;
+
+  function truncate(value, maxChars) {
+    return value.length > maxChars ? value.slice(0, maxChars - 1) + "…" : value;
+  }
+
+  function isPickableElement(element) {
+    return (
+      element instanceof Element &&
+      element !== document.documentElement &&
+      element !== document.body
+    );
+  }
+
+  function resolvePickTarget(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const element = document.elementFromPoint(x, y);
+    return isPickableElement(element) ? element.closest("svg") || element : null;
+  }
+
+  function pickLabel(element) {
+    if (element.id) return element.localName + "#" + element.id;
+    return [element.localName].concat(Array.from(element.classList).slice(0, 2)).join(".");
+  }
+
+  // Only attributes that help find the element in source. data-* values and URL
+  // query strings or fragments can carry tokens.
+  const PICK_ATTRIBUTES = new Set([
+    "id",
+    "class",
+    "name",
+    "type",
+    "role",
+    "alt",
+    "aria-label",
+    "href",
+    "src",
+  ]);
+
+  function pickAttributeValue(attribute) {
+    return attribute.name === "href" || attribute.name === "src"
+      ? attribute.value.split(/[?#]/)[0]
+      : attribute.value;
+  }
+
+  function describePickElement(element) {
+    const chain = [];
+    for (
+      let current = element;
+      isPickableElement(current) && chain.length < PICK_CHAIN_LENGTH;
+      current = current.parentElement
+    ) {
+      chain.unshift(current);
+    }
+    const attributes = Array.from(element.attributes)
+      .filter((attribute) => PICK_ATTRIBUTES.has(attribute.name))
+      .map((attribute) => ` ${attribute.name}="${pickAttributeValue(attribute).replace(/"/g, "&quot;")}"`)
+      .join("");
+    const text = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+    return {
+      chain: chain.map(pickLabel),
+      html: truncate(`<${element.localName}${attributes}>`, PICK_MAX_HTML_CHARS),
+      text: text ? truncate(text, PICK_MAX_TEXT_CHARS) : undefined,
+    };
+  }
+
+  // Hover asks once per frame, and innerText on a large section forces layout,
+  // so only the rect is re-read while the pointer stays on the same element.
+  // Clicks ask for fresh details since the page may have changed the element.
+  let lastPick = null;
+
+  function describePickTarget(element, fresh) {
+    if (fresh || lastPick?.element !== element) {
+      lastPick = { element, details: describePickElement(element) };
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+      rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+      ...lastPick.details,
+    };
+  }
+
+  function inlineAll(original, clone) {
+    if (original.nodeType !== 1 || clone.nodeType !== 1) return;
+
+    try {
+      const computedStyle = getComputedStyle(original);
+      // cssText on a computed style is the serialized declaration in modern
+      // Chromium/Safari — a single read beats enumerating ~400 longhand
+      // properties. Firefox returns "" here, so we fall back on empty.
+      const serialized = computedStyle.cssText;
+      if (serialized) {
+        clone.style.cssText = serialized;
+      } else {
+        const parts = new Array(computedStyle.length);
+        for (let index = 0; index < computedStyle.length; index += 1) {
+          const property = computedStyle[index];
+          parts[index] = `${property}:${computedStyle.getPropertyValue(property)};`;
+        }
+        clone.style.cssText = parts.join("");
+      }
+    } catch (_error) {}
+
+    const originalChildren = original.children;
+    const clonedChildren = clone.children;
+    for (
+      let index = 0;
+      index < originalChildren.length && index < clonedChildren.length;
+      index += 1
+    ) {
+      inlineAll(originalChildren[index], clonedChildren[index]);
+    }
+  }
+
+  function extractFontUrl(srcValue) {
+    const matches = [
+      ...srcValue.matchAll(
+        /url\(["']?([^"')]+)["']?\)(?:\s*format\(["']?([^"')]+)["']?\))?/gi,
+      ),
+    ];
+    if (matches.length === 0) return null;
+    const woff2 = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff2"));
+    if (woff2) return woff2[1];
+    const woff = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff"));
+    if (woff) return woff[1];
+    return matches[0][1];
+  }
+
+  // Cache resolved font URL -> data URI across captures. Fonts on a page
+  // essentially never change, and a batch run emits multiple captures back to
+  // back — without this we'd refetch + re-base64 every time.
+  const fontDataUriCache = new Map();
+  const SRC_DECLARATION_RE = /src\s*:\s*[^;}]+/i;
+
+  async function fetchAsDataUri(url) {
+    if (fontDataUriCache.has(url)) return fontDataUriCache.get(url);
+    let dataUri = null;
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size <= MAX_FONT_BYTES) {
+          dataUri = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () =>
+              resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    } catch (_error) {
+      dataUri = null;
+    }
+    fontDataUriCache.set(url, dataUri);
+    return dataUri;
+  }
+
+  function collectFontFaceRuleTexts() {
+    const rules = [];
+    for (const sheet of document.styleSheets) {
+      let cssRules;
+      try {
+        cssRules = sheet.cssRules;
+      } catch (_error) {
+        continue;
+      }
+      if (!cssRules) continue;
+      for (const rule of cssRules) {
+        const cssText = rule.cssText || "";
+        if (cssText.startsWith("@font-face")) rules.push(cssText);
+      }
+    }
+    return rules;
+  }
+
+  async function buildInlinedFontCss() {
+    const ruleTexts = collectFontFaceRuleTexts();
+    if (ruleTexts.length === 0) return null;
+
+    const resolved = ruleTexts.map((cssText) => {
+      if (!SRC_DECLARATION_RE.test(cssText)) return null;
+      const srcMatch = cssText.match(/src\s*:\s*([^;}]+)[;}]/i);
+      if (!srcMatch) return null;
+      const url = extractFontUrl(srcMatch[1]);
+      if (!url) return null;
+      try {
+        return { cssText, url: new URL(url, document.baseURI).href };
+      } catch (_error) {
+        return null;
+      }
+    });
+
+    const dataUris = await Promise.all(
+      resolved.map((entry) => (entry ? fetchAsDataUri(entry.url) : Promise.resolve(null))),
+    );
+
+    const inlined = [];
+    let totalBytes = 0;
+    for (let index = 0; index < resolved.length; index += 1) {
+      const entry = resolved[index];
+      const dataUri = dataUris[index];
+      if (!entry || !dataUri) continue;
+      const approxBytes = dataUri.length * 0.75;
+      if (totalBytes + approxBytes > MAX_TOTAL_FONT_BYTES) break;
+      totalBytes += approxBytes;
+      inlined.push(entry.cssText.replace(SRC_DECLARATION_RE, `src: url("${dataUri}")`));
+    }
+    return inlined.length > 0 ? inlined.join("\n") : null;
+  }
+
+  function stripExternal(clone) {
+    const images = clone.querySelectorAll("img");
+    for (let index = 0; index < images.length; index += 1) {
+      const src = images[index].getAttribute("src");
+      if (src && !src.startsWith("data:")) images[index].removeAttribute("src");
+    }
+
+    const elements = clone.querySelectorAll("*");
+    for (let index = 0; index < elements.length; index += 1) {
+      const style = elements[index].style.cssText;
+      if (style && style.includes("url(")) {
+        elements[index].style.cssText = style.replace(
+          /url\(["']?(?!data:)[^)"']*["']?\)/gi,
+          "none",
+        );
+      }
+    }
+  }
+
+  function emitScroll() {
+    scrollRaf = 0;
+    if (!scrollForwarding) return;
+    postToTrustedTop({
+      type: "INLINE_EDIT_SCROLL",
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      capabilities: PICK_CAPABILITIES,
+    });
+  }
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!scrollForwarding || scrollRaf) return;
+      scrollRaf = requestAnimationFrame(emitScroll);
+    },
+    { passive: true, capture: true },
+  );
+
+  async function handleCaptureRequest(event) {
+    const requestId = event.data.requestId;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    function postResult(dataUrl) {
+      postToTrustedTop({
+        type: "INLINE_EDIT_SCREENSHOT_RESULT",
+        requestId,
+        dataUrl,
+        scrollX,
+        scrollY,
+      });
+    }
+
+    try {
+      // Wait for any pending web fonts to resolve so both inline metrics and
+      // the @font-face inlining below see the same loaded faces.
+      if (document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_error) {}
+      }
+
+      const clone = document.documentElement.cloneNode(true);
+      inlineAll(document.documentElement, clone);
+
+      const removedNodes = clone.querySelectorAll("script,link[rel=\"stylesheet\"],style");
+      for (let index = 0; index < removedNodes.length; index += 1) {
+        removedNodes[index].remove();
+      }
+
+      stripExternal(clone);
+
+      // Re-embed web fonts as data-URI @font-face rules so the SVG rasterizer
+      // can resolve them — external font URLs aren't fetched during
+      // foreignObject rendering, which would otherwise force a fallback face
+      // and change text metrics.
+      const inlinedFontCss = await buildInlinedFontCss();
+      if (inlinedFontCss) {
+        const styleEl = document.createElement("style");
+        styleEl.textContent = inlinedFontCss;
+        const head = clone.querySelector("head");
+        if (head) head.appendChild(styleEl);
+        else clone.insertBefore(styleEl, clone.firstChild);
+      }
+
+      const html = new XMLSerializer().serializeToString(clone);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+        '<foreignObject width="100%" height="100%">' +
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden">` +
+        `<div style="position:relative;left:-${scrollX}px;top:-${scrollY}px">` +
+        html +
+        "</div></div></foreignObject></svg>";
+      const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const image = new Image();
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        postResult(canvas.toDataURL("image/png"));
+      };
+      image.onerror = function () {
+        postResult(null);
+      };
+      image.src = svgUrl;
+    } catch (_error) {
+      postResult(null);
+    }
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.data) return;
+    // Only accept messages from the direct parent frame. Blocks sibling /
+    // unrelated-window postMessage senders that could otherwise reach us.
+    if (event.source !== window.parent) return;
+
+    const trustedParentOrigin = getTrustedParentOrigin(event);
+    if (!trustedParentOrigin) return;
+    trustedTopOrigin = trustedParentOrigin;
+
+    if (event.data.type === "INLINE_EDIT_PICK") {
+      const element = resolvePickTarget(event.data.x, event.data.y);
+      postToTrustedTop({
+        type: "INLINE_EDIT_PICK_RESULT",
+        seq: event.data.seq,
+        target: element ? describePickTarget(element, event.data.fresh === true) : null,
+      });
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_START") {
+      scrollForwarding = true;
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_STOP") {
+      scrollForwarding = false;
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      scrollRaf = 0;
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_BY") {
+      const { deltaX, deltaY, deltaMode } = event.data;
+      if (!scrollForwarding || !Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
+      if (deltaMode !== 0 && deltaMode !== 1 && deltaMode !== 2) return;
+      const lineHeight =
+        parseFloat(getComputedStyle(document.documentElement).lineHeight) || DEFAULT_LINE_HEIGHT;
+      const scaleX = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerWidth : 1;
+      const scaleY = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerHeight : 1;
+      // The selection overlay receives the wheel event instead of this iframe.
+      // Instant scrolling preserves trackpad deltas even on smooth-scroll sites.
+      window.scrollBy({ left: deltaX * scaleX, top: deltaY * scaleY, behavior: "instant" });
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type !== "INLINE_EDIT_CAPTURE_REQUEST") return;
+
+    handleCaptureRequest(event);
+  });
+})();
+
+
+</script></body>
+</html>
